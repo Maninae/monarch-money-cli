@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "monarch-money-cli"
+version = "0.1.0"
+description = "Comprehensive CLI for Monarch Money - full API coverage for agents and humans"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Owen Wang" }
+]
+keywords = ["monarch", "money", "finance", "cli", "budgeting"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+]
+dependencies = [
+    "monarchmoney>=0.1.15",
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+monarch = "monarch_money_cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/Maninae/monarch-money-cli"
+Repository = "https://github.com/Maninae/monarch-money-cli"
+Issues = "https://github.com/Maninae/monarch-money-cli/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/monarch_money_cli"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]

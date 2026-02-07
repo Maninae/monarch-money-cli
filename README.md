@@ -1,0 +1,119 @@
+# monarch-money-cli
+
+Comprehensive CLI for [Monarch Money](https://www.monarchmoney.com/) — full API coverage for agents and humans.
+
+Built on top of the excellent [monarchmoney](https://github.com/hammem/monarchmoney) Python library.
+
+## Installation
+
+```bash
+# From source
+git clone https://github.com/Maninae/monarch-money-cli.git
+cd monarch-money-cli
+pip install -e .
+
+# Or via pip (once published)
+pip install monarch-money-cli
+```
+
+## Quick Start
+
+```bash
+# Authenticate (interactive, supports MFA)
+monarch auth login
+
+# Check auth status
+monarch auth status
+
+# List all accounts
+monarch accounts list
+
+# Get recent transactions
+monarch transactions list --limit 50
+
+# Check budgets
+monarch budgets list
+```
+
+## Commands
+
+### Authentication
+```bash
+monarch auth login      # Interactive login with MFA support
+monarch auth logout     # Clear saved session
+monarch auth status     # Check authentication status
+```
+
+### Accounts
+```bash
+monarch accounts list                    # List all accounts
+monarch accounts get <id>                # Get account details
+monarch accounts history <id>            # Get account balance history
+monarch accounts refresh                 # Trigger sync with institutions
+monarch accounts create                  # Create manual account
+monarch accounts update <id>             # Update account settings
+monarch accounts delete <id>             # Delete an account
+```
+
+### Transactions
+```bash
+monarch transactions list                # List recent transactions
+monarch transactions get <id>            # Get transaction details
+monarch transactions create              # Create a transaction
+monarch transactions update <id>         # Update a transaction
+monarch transactions delete <id>         # Delete a transaction
+monarch transactions splits <id>         # View/manage splits
+```
+
+### Budgets
+```bash
+monarch budgets list                     # List all budgets
+monarch budgets set <category> <amount>  # Set budget amount
+```
+
+### Cashflow
+```bash
+monarch cashflow summary                 # Income/expense/savings summary
+monarch cashflow details                 # Detailed cashflow by category
+```
+
+### Categories & Tags
+```bash
+monarch categories list                  # List all categories
+monarch categories create <name>         # Create a category
+monarch categories delete <id>           # Delete a category
+
+monarch tags list                        # List all tags
+monarch tags create <name>               # Create a tag
+```
+
+### Recurring Transactions
+```bash
+monarch recurring list                   # List recurring transactions
+```
+
+### Institutions
+```bash
+monarch institutions list                # List linked institutions
+```
+
+## Output Formats
+
+```bash
+# JSON (default, agent-friendly)
+monarch accounts list
+
+# Table format (human-friendly)
+monarch accounts list --format table
+
+# Quiet (minimal output)
+monarch accounts list --quiet
+```
+
+## Configuration
+
+Session tokens are stored in `~/.monarch/session.json` by default.
+
+## License
+
+MIT
