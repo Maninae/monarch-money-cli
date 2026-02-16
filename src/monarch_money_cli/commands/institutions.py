@@ -3,13 +3,11 @@ Institution management commands.
 """
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from monarch_money_cli.client import async_command, get_client, handle_error, output_json
+from monarch_money_cli.client import async_command, console, get_client, handle_error, output_json
 
 app = typer.Typer(no_args_is_help=True)
-console = Console()
 
 
 @app.command("list")

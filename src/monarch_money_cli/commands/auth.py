@@ -3,7 +3,6 @@ Authentication commands.
 """
 
 import typer
-from rich.console import Console
 from rich.prompt import Prompt
 
 from monarchmoney import MonarchMoney, RequireMFAException
@@ -12,12 +11,12 @@ from monarch_money_cli.client import (
     SESSION_FILE,
     async_command,
     clear_session,
+    console,
     save_session,
     session_exists,
 )
 
 app = typer.Typer(no_args_is_help=True)
-console = Console()
 
 
 @app.command("login")
