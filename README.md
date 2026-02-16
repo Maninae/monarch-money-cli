@@ -116,4 +116,4 @@ Session tokens are stored in `~/.monarch/session.json` by default.
 
 ## License
 
-MIT
+Non-Commercial Personal Use License — free to use, copy, modify, and share for personal, non-commercial purposes. See [LICENSE](LICENSE) for details.
