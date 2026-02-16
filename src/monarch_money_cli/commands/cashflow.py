@@ -2,17 +2,19 @@
 Cashflow analysis commands.
 """
 
-from datetime import datetime
-from typing import Optional
-
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from monarch_money_cli.client import async_command, get_client, handle_error, output_json
+from monarch_money_cli.client import (
+    async_command,
+    console,
+    default_date_range,
+    get_client,
+    handle_error,
+    output_json,
+)
 
 app = typer.Typer(no_args_is_help=True)
-console = Console()
 
 
 @app.command("summary")
@@ -27,13 +29,7 @@ async def cashflow_summary(
     """
     try:
         mm = get_client()
-        
-        # Default to current month
-        if not start_date:
-            today = datetime.now()
-            start_date = today.replace(day=1).strftime("%Y-%m-%d")
-        if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date, end_date = default_date_range(start_date, end_date)
         
         data = await mm.get_cashflow_summary(start_date=start_date, end_date=end_date)
         
@@ -74,13 +70,7 @@ async def cashflow_details(
     """
     try:
         mm = get_client()
-        
-        # Default to current month
-        if not start_date:
-            today = datetime.now()
-            start_date = today.replace(day=1).strftime("%Y-%m-%d")
-        if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date, end_date = default_date_range(start_date, end_date)
         
         data = await mm.get_cashflow(start_date=start_date, end_date=end_date)
         output_json(data)

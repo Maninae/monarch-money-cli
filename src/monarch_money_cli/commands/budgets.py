@@ -3,16 +3,33 @@ Budget management commands.
 """
 
 from datetime import datetime
-from typing import Optional
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from monarch_money_cli.client import async_command, get_client, handle_error, output_json
+from monarch_money_cli.client import (
+    async_command,
+    console,
+    get_client,
+    handle_error,
+    output_json,
+)
 
 app = typer.Typer(no_args_is_help=True)
-console = Console()
+
+
+def _budget_date_range(start: str | None, end: str | None) -> tuple[str, str]:
+    """Budget-specific date range: defaults to full current month."""
+    today = datetime.now()
+    if not start:
+        start = today.replace(day=1).strftime("%Y-%m-%d")
+    if not end:
+        # First day of next month (exclusive end for budget queries)
+        if today.month == 12:
+            end = today.replace(year=today.year + 1, month=1, day=1).strftime("%Y-%m-%d")
+        else:
+            end = today.replace(month=today.month + 1, day=1).strftime("%Y-%m-%d")
+    return start, end
 
 
 @app.command("list")
@@ -27,18 +44,7 @@ async def list_budgets(
     """
     try:
         mm = get_client()
-        
-        # Default to current month
-        if not start_date:
-            today = datetime.now()
-            start_date = today.replace(day=1).strftime("%Y-%m-%d")
-        if not end_date:
-            today = datetime.now()
-            # Last day of current month
-            if today.month == 12:
-                end_date = today.replace(year=today.year + 1, month=1, day=1).strftime("%Y-%m-%d")
-            else:
-                end_date = today.replace(month=today.month + 1, day=1).strftime("%Y-%m-%d")
+        start_date, end_date = _budget_date_range(start_date, end_date)
         
         data = await mm.get_budgets(start_date=start_date, end_date=end_date)
         

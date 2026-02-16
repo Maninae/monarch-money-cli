@@ -2,18 +2,19 @@
 Transaction management commands.
 """
 
-import json
-from datetime import datetime, timedelta
-from typing import Optional
-
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from monarch_money_cli.client import async_command, get_client, handle_error, output_json
+from monarch_money_cli.client import (
+    async_command,
+    console,
+    default_date_range,
+    get_client,
+    handle_error,
+    output_json,
+)
 
 app = typer.Typer(no_args_is_help=True)
-console = Console()
 
 
 @app.command("list")
@@ -69,10 +70,10 @@ async def list_transactions(
                 
                 table.add_row(
                     t.get("date", ""),
-                    (t.get("merchant", {}) or {}).get("name", t.get("plaidName", ""))[:25],
-                    (t.get("category", {}) or {}).get("name", ""),
+                    (t.get("merchant") or {}).get("name", t.get("plaidName", ""))[:25],
+                    (t.get("category") or {}).get("name", ""),
                     amount_str,
-                    (t.get("account", {}) or {}).get("displayName", "")[:15],
+                    (t.get("account") or {}).get("displayName", "")[:15],
                 )
             console.print(table)
         else:
@@ -108,13 +109,7 @@ async def get_summary(
     """
     try:
         mm = get_client()
-        
-        # Default to current month if no dates provided
-        if not start_date:
-            today = datetime.now()
-            start_date = today.replace(day=1).strftime("%Y-%m-%d")
-        if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date, end_date = default_date_range(start_date, end_date)
         
         data = await mm.get_transactions_summary(start_date=start_date, end_date=end_date)
         output_json(data)

@@ -81,5 +81,15 @@ def output_json(data: Any) -> None:
 
 def handle_error(e: Exception) -> None:
     """Handle and display errors consistently."""
-    console.print(f"[red]Error: {e}[/red]")
+    console.print(f"[red]Error ({type(e).__name__}): {e}[/red]")
     raise SystemExit(1)
+
+
+def default_date_range(start: str | None, end: str | None) -> tuple[str, str]:
+    """Return (start_date, end_date), defaulting to current month."""
+    from datetime import datetime
+    today = datetime.now()
+    return (
+        start or today.replace(day=1).strftime("%Y-%m-%d"),
+        end or today.strftime("%Y-%m-%d"),
+    )
