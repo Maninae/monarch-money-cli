@@ -38,7 +38,9 @@ async def cashflow_summary(
         data = await mm.get_cashflow_summary(start_date=start_date, end_date=end_date)
         
         if format == "table":
-            summary = data.get("summary", [{}])[0] if data.get("summary") else {}
+            # API returns nested structure: {"summary": [{"summary": {...}}]}
+            outer = data.get("summary", [{}])[0] if data.get("summary") else {}
+            summary = outer.get("summary", {}) if isinstance(outer, dict) else {}
             
             income = summary.get("sumIncome", 0)
             expenses = abs(summary.get("sumExpense", 0))

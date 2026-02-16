@@ -9,7 +9,12 @@ from pathlib import Path
 from typing import Any, Callable
 
 from monarchmoney import MonarchMoney
+from monarchmoney.monarchmoney import MonarchMoney as MonarchMoneyClass
 from rich.console import Console
+
+# PATCH: API domain changed from api.monarchmoney.com to api.monarch.com
+# See: https://github.com/hammem/monarchmoney/issues/184
+MonarchMoneyClass.BASE_URL = "https://api.monarch.com"
 
 console = Console()
 
