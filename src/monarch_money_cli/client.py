@@ -98,3 +98,24 @@ def default_date_range(start: str | None, end: str | None) -> tuple[str, str]:
         start or today.replace(day=1).strftime("%Y-%m-%d"),
         end or today.strftime("%Y-%m-%d"),
     )
+
+
+def print_table(
+    title: str,
+    columns: list[tuple[str, str]],
+    rows: list[list[str]],
+) -> None:
+    """Print a simple table.
+    
+    Args:
+        title: Table title
+        columns: List of (name, justify) tuples. justify: "left", "right", "center"
+        rows: List of row values (as strings)
+    """
+    from rich.table import Table
+    table = Table(title=title)
+    for name, justify in columns:
+        table.add_column(name, justify=justify or "left")
+    for row in rows:
+        table.add_row(*row)
+    console.print(table)
