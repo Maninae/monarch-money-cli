@@ -80,7 +80,12 @@ def output_json(data: Any) -> None:
 
 
 def handle_error(e: Exception) -> None:
-    """Handle and display errors consistently."""
+    """Handle and display errors consistently.
+    
+    Re-raises KeyboardInterrupt and SystemExit to allow clean exits.
+    """
+    if isinstance(e, (KeyboardInterrupt, SystemExit)):
+        raise e
     console.print(f"[red]Error ({type(e).__name__}): {e}[/red]")
     raise SystemExit(1)
 
