@@ -1,10 +1,29 @@
-# monarch-money-cli
+<div align="center">
+  <img src="assets/monarch-banner.jpg" alt="Monarch Money CLI" width="600">
+  
+  # Monarch Money CLI 🦋
+  
+  **Your finances at your fingertips** — a comprehensive CLI for Monarch Money
+  
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Non--Commercial-F5A623?style=for-the-badge" alt="License"></a>
+  
+</div>
 
-Comprehensive CLI for [Monarch Money](https://www.monarchmoney.com/) — full API coverage for agents and humans.
+---
 
-Built on top of the excellent [monarchmoney](https://github.com/hammem/monarchmoney) Python library.
+Monarch Money CLI brings the full power of [Monarch Money](https://www.monarchmoney.com/) to your terminal. Query accounts, transactions, budgets, and cashflow — perfect for automation, AI agents, or humans who prefer the command line.
 
-## Installation
+Built on the excellent [monarchmoney](https://github.com/hammem/monarchmoney) Python library.
+
+## ✨ Features
+
+- **Full API coverage** — accounts, transactions, budgets, cashflow, categories, tags
+- **Agent-friendly** — JSON output by default, quiet mode for scripts  
+- **Human-friendly** — table format, interactive auth with MFA support
+- **Session persistence** — login once, query forever
+
+## 📦 Installation
 
 ```bash
 # From source
@@ -16,7 +35,7 @@ pip install -e .
 pip install monarch-money-cli
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 # Authenticate (interactive, supports MFA)
@@ -35,9 +54,10 @@ monarch transactions list --limit 50
 monarch budgets list
 ```
 
-## Commands
+## 📖 Commands
 
 ### Authentication
+
 ```bash
 monarch auth login      # Interactive login with MFA support
 monarch auth logout     # Clear saved session
@@ -45,6 +65,7 @@ monarch auth status     # Check authentication status
 ```
 
 ### Accounts
+
 ```bash
 monarch accounts list                    # List all accounts
 monarch accounts get <id>                # Get account details
@@ -56,6 +77,7 @@ monarch accounts delete <id>             # Delete an account
 ```
 
 ### Transactions
+
 ```bash
 monarch transactions list                # List recent transactions
 monarch transactions get <id>            # Get transaction details
@@ -66,18 +88,21 @@ monarch transactions splits <id>         # View/manage splits
 ```
 
 ### Budgets
+
 ```bash
 monarch budgets list                     # List all budgets
 monarch budgets set <category> <amount>  # Set budget amount
 ```
 
 ### Cashflow
+
 ```bash
 monarch cashflow summary                 # Income/expense/savings summary
 monarch cashflow details                 # Detailed cashflow by category
 ```
 
 ### Categories & Tags
+
 ```bash
 monarch categories list                  # List all categories
 monarch categories create <name>         # Create a category
@@ -88,16 +113,18 @@ monarch tags create <name>               # Create a tag
 ```
 
 ### Recurring Transactions
+
 ```bash
 monarch recurring list                   # List recurring transactions
 ```
 
 ### Institutions
+
 ```bash
 monarch institutions list                # List linked institutions
 ```
 
-## Output Formats
+## 🎨 Output Formats
 
 ```bash
 # JSON (default, agent-friendly)
@@ -110,10 +137,10 @@ monarch accounts list --format table
 monarch accounts list --quiet
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 Session tokens are stored in `~/.monarch/session.json` by default.
 
-## License
+## 📄 License
 
 Non-Commercial Personal Use License — free to use, copy, modify, and share for personal, non-commercial purposes. See [LICENSE](LICENSE) for details.
