@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="assets/monarch-banner.jpg" alt="Monarch Money CLI" width="600">
   
   # Monarch Money CLI 🦋
   
