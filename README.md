@@ -13,7 +13,7 @@
 
 Monarch Money CLI brings the full power of [Monarch Money](https://www.monarchmoney.com/) to your terminal. Query accounts, transactions, budgets, and cashflow — perfect for automation, AI agents, or humans who prefer the command line.
 
-Built on the excellent [monarchmoney](https://github.com/hammem/monarchmoney) Python library.
+Built on the excellent [monarchmoney](https://github.com/hammem/monarchmoney) Python library. Tested against `monarchmoney==0.1.15` — newer versions may introduce breaking changes.
 
 ## ✨ Features
 
