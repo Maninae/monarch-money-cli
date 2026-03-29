@@ -89,7 +89,7 @@ monarch transactions splits <id>         # View/manage splits
 ### Budgets
 
 ```bash
-monarch budgets list                     # List all budgets (⚠ currently broken upstream)
+monarch budgets list                     # List all budgets
 monarch budgets set <category> <amount>  # Set budget amount
 ```
 
