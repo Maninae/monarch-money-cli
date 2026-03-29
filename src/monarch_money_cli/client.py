@@ -11,15 +11,6 @@ from typing import Any, Callable
 from monarchmoney import MonarchMoney
 from rich.console import Console
 
-# =============================================================================
-# MONKEY PATCH: API domain changed from api.monarchmoney.com to api.monarch.com
-# See: https://github.com/hammem/monarchmoney/issues/184
-# TODO: Remove this once monarchmoney package ships with the fix
-# =============================================================================
-from monarchmoney.monarchmoney import MonarchMoneyEndpoints as _Endpoints
-_Endpoints.BASE_URL = "https://api.monarch.com"
-del _Endpoints  # Clean up namespace
-
 console = Console()
 
 # Default session path

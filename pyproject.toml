@@ -26,8 +26,7 @@ classifiers = [
     "Topic :: Office/Business :: Financial",
 ]
 dependencies = [
-    "monarchmoney==0.1.15",
-    "gql>=3.4.0,<4.0",
+    "monarchmoney @ git+https://github.com/Maninae/monarchmoney@main",
     "typer[all]>=0.9.0,<1.0",
     "rich>=13.0.0,<14.0",
 ]
@@ -47,6 +46,9 @@ monarch = "monarch_money_cli.main:main"
 Homepage = "https://github.com/Maninae/monarch-money-cli"
 Repository = "https://github.com/Maninae/monarch-money-cli"
 Issues = "https://github.com/Maninae/monarch-money-cli/issues"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/monarch_money_cli"]
