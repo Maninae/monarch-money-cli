@@ -89,7 +89,7 @@ monarch transactions splits <id>         # View/manage splits
 ### Budgets
 
 ```bash
-monarch budgets list                     # List all budgets
+monarch budgets list                     # List all budgets (⚠ currently broken upstream)
 monarch budgets set <category> <amount>  # Set budget amount
 ```
 
@@ -138,7 +138,13 @@ monarch accounts list --quiet
 
 ## ⚙️ Configuration
 
-Session tokens are stored in `~/.monarch/session.json` by default.
+Session tokens are stored in `~/.monarch/session.json` with restricted file permissions (`600`).
+
+## 🔒 Security Notes
+
+- **Interactive auth is recommended.** The `--password` and `--mfa-secret` flags are available for automation but expose credentials in your process list and shell history. Use the interactive prompt when possible.
+- **Session tokens** are stored locally in `~/.monarch/` with restricted permissions. Treat this directory like any credential store — don't share or back it up to public locations.
+- **Logging out** clears the local session file but does not revoke the token server-side.
 
 ## 📄 License
 

@@ -24,5 +24,17 @@ app.add_typer(recurring.app, name="recurring", help="Recurring transactions")
 app.add_typer(institutions.app, name="institutions", help="Linked institutions")
 
 
+def main():
+    try:
+        app()
+    except SystemExit:
+        raise
+    except KeyboardInterrupt:
+        raise SystemExit(0)
+    except Exception as e:
+        from monarch_money_cli.client import handle_error
+        handle_error(e)
+
+
 if __name__ == "__main__":
-    app()
+    main()

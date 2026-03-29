@@ -16,9 +16,9 @@ from rich.console import Console
 # See: https://github.com/hammem/monarchmoney/issues/184
 # TODO: Remove this once monarchmoney package ships with the fix
 # =============================================================================
-from monarchmoney.monarchmoney import MonarchMoney as _MonarchMoneyClass
-_MonarchMoneyClass.BASE_URL = "https://api.monarch.com"
-del _MonarchMoneyClass  # Clean up namespace
+from monarchmoney.monarchmoney import MonarchMoneyEndpoints as _Endpoints
+_Endpoints.BASE_URL = "https://api.monarch.com"
+del _Endpoints  # Clean up namespace
 
 console = Console()
 
@@ -34,9 +34,9 @@ def get_client(require_auth: bool = True) -> MonarchMoney:
     if require_auth and SESSION_FILE.exists():
         try:
             mm.load_session(str(SESSION_FILE))
-        except Exception as e:
+        except Exception:
             if require_auth:
-                console.print(f"[red]Failed to load session: {e}[/red]")
+                console.print("[red]Failed to load session.[/red]")
                 console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
                 raise SystemExit(1)
     elif require_auth:
@@ -50,7 +50,9 @@ def get_client(require_auth: bool = True) -> MonarchMoney:
 def save_session(mm: MonarchMoney) -> None:
     """Save the current session."""
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    SESSION_DIR.chmod(0o700)
     mm.save_session(str(SESSION_FILE))
+    SESSION_FILE.chmod(0o600)
 
 
 def clear_session() -> bool:
@@ -79,14 +81,56 @@ def output_json(data: Any) -> None:
     console.print_json(json.dumps(data, default=str, indent=2))
 
 
+def _friendly_message(e: Exception) -> str:
+    """Convert upstream exceptions into user-friendly messages."""
+    from monarchmoney.monarchmoney import LoginFailedException, RequestFailedException
+
+    msg = str(e)
+
+    if isinstance(e, LoginFailedException):
+        if "403" in msg:
+            return "Login failed — incorrect email, password, or MFA code."
+        if "404" in msg:
+            return "Login failed — email address not found. Check your email and try again."
+        if "401" in msg:
+            return "Login failed — incorrect password."
+        if "525" in msg:
+            return "Login failed — could not connect to Monarch Money (SSL error). Try again later."
+        return f"Login failed — {_sanitize(msg)}"
+
+    if isinstance(e, RequestFailedException):
+        return f"API request failed — {_sanitize(msg)}"
+
+    if "TransportQueryError" in type(e).__name__:
+        return "The Monarch Money API returned an error. The query may be temporarily unsupported."
+
+    if isinstance(e, (ConnectionError, OSError)):
+        return "Could not connect to Monarch Money. Check your internet connection."
+
+    if isinstance(e, TimeoutError):
+        return "Request to Monarch Money timed out. Try again."
+
+    return _sanitize(msg)
+
+
+def _sanitize(msg: str) -> str:
+    """Strip tokens, headers, and URLs with auth params from error messages."""
+    if any(kw in msg.lower() for kw in ("token", "bearer", "authorization", "set-cookie", "cf-ray", "clientresponse")):
+        return "An authentication error occurred. Try logging in again with 'monarch auth login'."
+    # Truncate overly long messages (e.g. raw HTTP dumps)
+    if len(msg) > 200:
+        return msg[:200] + "..."
+    return msg
+
+
 def handle_error(e: Exception) -> None:
     """Handle and display errors consistently.
-    
+
     Re-raises KeyboardInterrupt and SystemExit to allow clean exits.
     """
     if isinstance(e, (KeyboardInterrupt, SystemExit)):
         raise e
-    console.print(f"[red]Error ({type(e).__name__}): {e}[/red]")
+    console.print(f"[red]Error: {_friendly_message(e)}[/red]")
     raise SystemExit(1)
 
 

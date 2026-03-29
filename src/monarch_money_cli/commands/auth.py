@@ -6,12 +6,14 @@ import typer
 from rich.prompt import Prompt
 
 from monarchmoney import MonarchMoney, RequireMFAException
+from monarchmoney.monarchmoney import LoginFailedException
 
 from monarch_money_cli.client import (
     SESSION_FILE,
     async_command,
     clear_session,
     console,
+    handle_error,
     save_session,
     session_exists,
 )
@@ -23,8 +25,8 @@ app = typer.Typer(no_args_is_help=True)
 @async_command
 async def login(
     email: str = typer.Option(None, "--email", "-e", help="Monarch Money email"),
-    password: str = typer.Option(None, "--password", "-p", help="Monarch Money password"),
-    mfa_secret: str = typer.Option(None, "--mfa-secret", help="MFA secret key for automatic TOTP"),
+    password: str = typer.Option(None, "--password", "-p", help="Monarch Money password (⚠ visible in process list and shell history; prefer interactive prompt)"),
+    mfa_secret: str = typer.Option(None, "--mfa-secret", help="MFA secret key for automatic TOTP (⚠ visible in process list and shell history; prefer interactive prompt)"),
 ):
     """
     Login to Monarch Money (interactive, supports MFA).
@@ -53,8 +55,13 @@ async def login(
     except RequireMFAException:
         console.print("[yellow]MFA required.[/yellow]")
         mfa_code = Prompt.ask("[bold]MFA Code[/bold]")
-        await mm.multi_factor_authenticate(email, password, mfa_code)
-    
+        try:
+            await mm.multi_factor_authenticate(email, password, mfa_code)
+        except (LoginFailedException, Exception) as e:
+            handle_error(e)
+    except Exception as e:
+        handle_error(e)
+
     # Save session for future use
     save_session(mm)
     console.print("[green]✓ Login successful. Session saved.[/green]")
