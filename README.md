@@ -1,6 +1,6 @@
 <div align="center">
 
-# Monarch Money CLI
+# Monarch Money CLI 🦋
 
 Query your finances from the terminal. Accounts, transactions, budgets, cashflow — one command away.
 
