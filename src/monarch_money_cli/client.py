@@ -46,7 +46,33 @@ async def _login_user_patched(self, email, password, mfa_secret_key=None):
             self._headers["Authorization"] = f"Token {self._token}"
 
 
+async def _mfa_patched(self, email, password, code):
+    """MFA with trusted_device=True for non-expiring tokens."""
+    from aiohttp import ClientSession
+
+    data = {
+        "password": password,
+        "supports_mfa": True,
+        "totp": code,
+        "trusted_device": True,
+        "username": email,
+    }
+
+    async with ClientSession(headers=self._headers) as session:
+        async with session.post(
+            _mm_module.MonarchMoneyEndpoints.getLoginEndpoint(), json=data
+        ) as resp:
+            if resp.status != 200:
+                raise _mm_module.LoginFailedException(
+                    f"HTTP Code {resp.status}: {resp.reason}"
+                )
+            response = await resp.json()
+            self.set_token(response["token"])
+            self._headers["Authorization"] = f"Token {self._token}"
+
+
 _mm_module.MonarchMoney._login_user = _login_user_patched
+_mm_module.MonarchMoney._multi_factor_authenticate = _mfa_patched
 del _mm_module
 
 console = Console()
@@ -71,8 +97,10 @@ def _load_config() -> dict:
 def save_config(config: dict) -> None:
     """Save config to ~/.monarch/config.json."""
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    SESSION_DIR.chmod(0o700)
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f, indent=2)
+    CONFIG_FILE.chmod(0o600)
 
 
 def get_client(require_auth: bool = True) -> MonarchMoney:
@@ -181,7 +209,9 @@ def _friendly_message(e: Exception) -> str:
 
 def _sanitize(msg: str) -> str:
     """Strip tokens, headers, and URLs with auth params from error messages."""
-    if any(kw in msg.lower() for kw in ("token", "bearer", "authorization", "set-cookie", "cf-ray", "clientresponse")):
+    sensitive = ("token", "bearer", "authorization", "set-cookie", "cf-ray",
+                 "clientresponse", "password", "device-uuid", "totp", "otp", "secret")
+    if any(kw in msg.lower() for kw in sensitive):
         return "An authentication error occurred. Try logging in again with 'monarch auth login'."
     if len(msg) > 200:
         return msg[:200] + "..."

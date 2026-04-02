@@ -22,11 +22,8 @@ from monarch_money_cli.client import (
 app = typer.Typer(no_args_is_help=True)
 
 
-def _get_device_uuid(config: dict, cli_uuid: str | None) -> str:
-    """Get Device UUID from CLI arg, config, or interactive prompt."""
-    if cli_uuid:
-        return cli_uuid
-
+def _get_device_uuid(config: dict) -> str:
+    """Get Device UUID from config or interactive prompt."""
     if config.get("device_uuid"):
         console.print("[dim]Using saved Device UUID.[/dim]")
         return config["device_uuid"]
@@ -45,45 +42,29 @@ def _get_device_uuid(config: dict, cli_uuid: str | None) -> str:
 
 @app.command("login")
 @async_command
-async def login(
-    email: str = typer.Option(None, "--email", "-e", help="Monarch Money email"),
-    password: str = typer.Option(None, "--password", "-p", help="Monarch Money password"),
-    mfa_secret: str = typer.Option(None, "--mfa-secret", help="MFA secret key for automatic TOTP"),
-    device_uuid: str = typer.Option(None, "--device-uuid", help="Device UUID for long-lived tokens"),
-):
+async def login():
     """
     Login to Monarch Money (interactive, supports MFA + trusted device).
     """
     try:
         config = _load_config()
-        uuid = _get_device_uuid(config, device_uuid)
+        uuid = _get_device_uuid(config)
 
         mm = MonarchMoney()
 
-        if not email:
-            email = Prompt.ask("[bold]Email[/bold]")
-        if not password:
-            password = Prompt.ask("[bold]Password[/bold]", password=True)
+        email = Prompt.ask("[bold]Email[/bold]")
+        password = Prompt.ask("[bold]Password[/bold]", password=True)
 
         # Set Device-UUID header before login for long-lived tokens
         mm._headers["Device-UUID"] = uuid
 
         try:
-            if mfa_secret:
-                await mm.login(
-                    email=email,
-                    password=password,
-                    save_session=False,
-                    use_saved_session=False,
-                    mfa_secret_key=mfa_secret,
-                )
-            else:
-                await mm.login(
-                    email=email,
-                    password=password,
-                    save_session=False,
-                    use_saved_session=False,
-                )
+            await mm.login(
+                email=email,
+                password=password,
+                save_session=False,
+                use_saved_session=False,
+            )
         except RequireMFAException:
             console.print("[yellow]MFA required.[/yellow]")
             mfa_code = Prompt.ask("[bold]MFA Code[/bold]")
