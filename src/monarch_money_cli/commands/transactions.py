@@ -2,6 +2,8 @@
 Transaction management commands.
 """
 
+from datetime import datetime
+
 import typer
 from rich.table import Table
 
@@ -37,7 +39,12 @@ async def list_transactions(
         
         # Parse optional filters
         kwargs = {"limit": limit, "offset": offset}
-        
+
+        # API requires both start and end if either is given
+        if start_date and not end_date:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+        if end_date and not start_date:
+            start_date = "2000-01-01"
         if start_date:
             kwargs["start_date"] = start_date
         if end_date:

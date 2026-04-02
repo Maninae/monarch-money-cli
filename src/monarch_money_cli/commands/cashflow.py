@@ -40,8 +40,8 @@ async def cashflow_summary(
             
             income = summary.get("sumIncome", 0)
             expenses = abs(summary.get("sumExpense", 0))
-            savings = summary.get("savings", 0)
-            savings_rate = summary.get("savingsRate", 0) * 100
+            savings = income - expenses
+            savings_rate = (savings / income * 100) if income else 0
             
             table = Table(title=f"Cashflow Summary ({start_date} to {end_date})")
             table.add_column("Metric")

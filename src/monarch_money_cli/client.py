@@ -11,31 +11,106 @@ from typing import Any, Callable
 from monarchmoney import MonarchMoney
 from rich.console import Console
 
+# trusted_device must be True for non-expiring tokens
+# See: https://github.com/hammem/monarchmoney/issues/139
+import monarchmoney.monarchmoney as _mm_module
+
+
+async def _login_user_patched(self, email, password, mfa_secret_key=None):
+    """Login with trusted_device=True for non-expiring tokens."""
+    from aiohttp import ClientSession
+
+    data = {
+        "password": password,
+        "supports_mfa": True,
+        "trusted_device": True,
+        "username": email,
+    }
+    if mfa_secret_key:
+        import oathtool
+        data["totp"] = oathtool.generate_otp(mfa_secret_key)
+
+    async with ClientSession(headers=self._headers) as session:
+        async with session.post(
+            _mm_module.MonarchMoneyEndpoints.getLoginEndpoint(), json=data
+        ) as resp:
+            if resp.status == 403:
+                from monarchmoney import RequireMFAException
+                raise RequireMFAException("Multi-Factor Auth Required")
+            elif resp.status != 200:
+                raise _mm_module.LoginFailedException(
+                    f"HTTP Code {resp.status}: {resp.reason}"
+                )
+            response = await resp.json()
+            self.set_token(response["token"])
+            self._headers["Authorization"] = f"Token {self._token}"
+
+
+_mm_module.MonarchMoney._login_user = _login_user_patched
+del _mm_module
+
 console = Console()
 
-# Default session path
+# Default session/config paths
 SESSION_DIR = Path.home() / ".monarch"
 SESSION_FILE = SESSION_DIR / "session.json"
+CONFIG_FILE = SESSION_DIR / "config.json"
+
+
+def _load_config() -> dict:
+    """Load config from ~/.monarch/config.json."""
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, KeyError):
+            pass
+    return {}
+
+
+def save_config(config: dict) -> None:
+    """Save config to ~/.monarch/config.json."""
+    SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2)
 
 
 def get_client(require_auth: bool = True) -> MonarchMoney:
     """Get a MonarchMoney client, optionally loading saved session."""
     mm = MonarchMoney()
-    
+
     if require_auth and SESSION_FILE.exists():
         try:
             mm.load_session(str(SESSION_FILE))
         except Exception:
-            if require_auth:
-                console.print("[red]Failed to load session.[/red]")
-                console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
-                raise SystemExit(1)
+            console.print("[red]Failed to load session.[/red]")
+            console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
+            raise SystemExit(1)
     elif require_auth:
         console.print("[red]Not authenticated.[/red]")
         console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
         raise SystemExit(1)
-    
+
+    # Restore Device-UUID header for long-lived tokens
+    config = _load_config()
+    device_uuid = config.get("device_uuid")
+    if device_uuid:
+        mm._headers["Device-UUID"] = device_uuid
+
     return mm
+
+
+async def verify_session(mm: MonarchMoney) -> None:
+    """Health check: verify session is still valid. Call from async context."""
+    try:
+        await mm.get_subscription_details()
+    except Exception as e:
+        err = str(e)
+        if "401" in err or "Unauthorized" in err or "not authenticated" in err.lower():
+            console.print("[red]Session expired or invalid.[/red]")
+            console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
+            raise SystemExit(1)
+        raise
 
 
 def save_session(mm: MonarchMoney) -> None:
@@ -80,17 +155,17 @@ def _friendly_message(e: Exception) -> str:
 
     if isinstance(e, LoginFailedException):
         if "403" in msg:
-            return "Login failed — incorrect email, password, or MFA code."
+            return "Login failed -- incorrect email, password, or MFA code."
         if "404" in msg:
-            return "Login failed — email address not found. Check your email and try again."
+            return "Login failed -- email address not found."
         if "401" in msg:
-            return "Login failed — incorrect password."
+            return "Login failed -- incorrect password."
         if "525" in msg:
-            return "Login failed — could not connect to Monarch Money (SSL error). Try again later."
-        return f"Login failed — {_sanitize(msg)}"
+            return "Login failed -- could not connect to Monarch Money (SSL error). Try again later."
+        return f"Login failed -- {_sanitize(msg)}"
 
     if isinstance(e, RequestFailedException):
-        return f"API request failed — {_sanitize(msg)}"
+        return f"API request failed -- {_sanitize(msg)}"
 
     if "TransportQueryError" in type(e).__name__:
         return "The Monarch Money API returned an error. The query may be temporarily unsupported."
@@ -108,7 +183,6 @@ def _sanitize(msg: str) -> str:
     """Strip tokens, headers, and URLs with auth params from error messages."""
     if any(kw in msg.lower() for kw in ("token", "bearer", "authorization", "set-cookie", "cf-ray", "clientresponse")):
         return "An authentication error occurred. Try logging in again with 'monarch auth login'."
-    # Truncate overly long messages (e.g. raw HTTP dumps)
     if len(msg) > 200:
         return msg[:200] + "..."
     return msg
@@ -140,13 +214,7 @@ def print_table(
     columns: list[tuple[str, str]],
     rows: list[list[str]],
 ) -> None:
-    """Print a simple table.
-    
-    Args:
-        title: Table title
-        columns: List of (name, justify) tuples. justify: "left", "right", "center"
-        rows: List of row values (as strings)
-    """
+    """Print a simple table."""
     from rich.table import Table
     table = Table(title=title)
     for name, justify in columns:
