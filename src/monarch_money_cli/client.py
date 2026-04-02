@@ -119,12 +119,6 @@ def get_client(require_auth: bool = True) -> MonarchMoney:
         console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
         raise SystemExit(1)
 
-    # Restore Device-UUID header for long-lived tokens
-    config = _load_config()
-    device_uuid = config.get("device_uuid")
-    if device_uuid:
-        mm._headers["Device-UUID"] = device_uuid
-
     return mm
 
 
