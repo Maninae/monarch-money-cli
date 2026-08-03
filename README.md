@@ -48,6 +48,8 @@ monarch cashflow summary
 
 Every command supports `--help` for full usage details.
 
+`monarch auth status` exits nonzero when not authenticated, and `monarch auth status --verify` round-trips the session against the API — handy for scripts and cron jobs that need to know a token died before they hit it.
+
 ## Output Formats
 
 ```bash
