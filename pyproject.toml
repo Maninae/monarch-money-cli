@@ -40,7 +40,7 @@ dev = [
 ]
 
 [project.scripts]
-monarch = "monarch_money_cli.main:app"
+monarch = "monarch_money_cli.main:main"
 
 [project.urls]
 Homepage = "https://github.com/Maninae/monarch-money-cli"

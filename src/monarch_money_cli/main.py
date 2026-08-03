@@ -4,6 +4,7 @@ Monarch Money CLI - Comprehensive CLI for Monarch Money
 
 import typer
 
+from monarch_money_cli.client import handle_error
 from monarch_money_cli.commands import accounts, auth, budgets, cashflow, categories, institutions, recurring, tags, transactions
 
 app = typer.Typer(
@@ -25,6 +26,7 @@ app.add_typer(institutions.app, name="institutions", help="Linked institutions")
 
 
 def main():
+    """Entry point: run the CLI with a catch-all so users never see raw tracebacks."""
     try:
         app()
     except SystemExit:
@@ -32,7 +34,6 @@ def main():
     except KeyboardInterrupt:
         raise SystemExit(0)
     except Exception as e:
-        from monarch_money_cli.client import handle_error
         handle_error(e)
 
 
