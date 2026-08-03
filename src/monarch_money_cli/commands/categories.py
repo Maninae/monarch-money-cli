@@ -5,7 +5,7 @@ Category management commands.
 import typer
 from rich.table import Table
 
-from monarch_money_cli.client import async_command, console, get_client, handle_error, output_json
+from monarch_money_cli.client import async_command, console, get_client, output_json
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -18,30 +18,27 @@ async def list_categories(
     """
     List all transaction categories.
     """
-    try:
-        mm = get_client()
-        data = await mm.get_transaction_categories()
-        
-        if format == "table":
-            categories = data.get("categories", [])
-            table = Table(title="Categories")
-            table.add_column("ID", style="dim")
-            table.add_column("Name")
-            table.add_column("Group")
-            table.add_column("Icon")
-            
-            for c in categories:
-                table.add_row(
-                    c.get("id", ""),
-                    c.get("name", ""),
-                    c.get("group", {}).get("name", "") if c.get("group") else "",
-                    c.get("icon", ""),
-                )
-            console.print(table)
-        else:
-            output_json(data)
-    except Exception as e:
-        handle_error(e)
+    mm = get_client()
+    data = await mm.get_transaction_categories()
+
+    if format == "table":
+        categories = data.get("categories", [])
+        table = Table(title="Categories")
+        table.add_column("ID", style="dim")
+        table.add_column("Name")
+        table.add_column("Group")
+        table.add_column("Icon")
+
+        for c in categories:
+            table.add_row(
+                c.get("id", ""),
+                c.get("name", ""),
+                c.get("group", {}).get("name", "") if c.get("group") else "",
+                c.get("icon", ""),
+            )
+        console.print(table)
+    else:
+        output_json(data)
 
 
 @app.command("groups")
@@ -52,28 +49,25 @@ async def list_category_groups(
     """
     List all category groups.
     """
-    try:
-        mm = get_client()
-        data = await mm.get_transaction_category_groups()
-        
-        if format == "table":
-            groups = data.get("categoryGroups", [])
-            table = Table(title="Category Groups")
-            table.add_column("ID", style="dim")
-            table.add_column("Name")
-            table.add_column("Type")
-            
-            for g in groups:
-                table.add_row(
-                    g.get("id", ""),
-                    g.get("name", ""),
-                    g.get("type", ""),
-                )
-            console.print(table)
-        else:
-            output_json(data)
-    except Exception as e:
-        handle_error(e)
+    mm = get_client()
+    data = await mm.get_transaction_category_groups()
+
+    if format == "table":
+        groups = data.get("categoryGroups", [])
+        table = Table(title="Category Groups")
+        table.add_column("ID", style="dim")
+        table.add_column("Name")
+        table.add_column("Type")
+
+        for g in groups:
+            table.add_row(
+                g.get("id", ""),
+                g.get("name", ""),
+                g.get("type", ""),
+            )
+        console.print(table)
+    else:
+        output_json(data)
 
 
 @app.command("create")
@@ -86,17 +80,14 @@ async def create_category(
     """
     Create a new transaction category.
     """
-    try:
-        mm = get_client()
-        data = await mm.create_transaction_category(
-            name=name,
-            group_id=group_id,
-            icon=icon,
-        )
-        console.print("[green]✓ Category created.[/green]")
-        output_json(data)
-    except Exception as e:
-        handle_error(e)
+    mm = get_client()
+    data = await mm.create_transaction_category(
+        name=name,
+        group_id=group_id,
+        icon=icon,
+    )
+    console.print("[green]✓ Category created.[/green]")
+    output_json(data)
 
 
 @app.command("delete")
@@ -110,14 +101,11 @@ async def delete_category(
     """
     if not confirm:
         confirm = typer.confirm("Are you sure you want to delete this category?")
-    
+
     if not confirm:
         console.print("[yellow]Cancelled.[/yellow]")
         raise SystemExit(0)
-    
-    try:
-        mm = get_client()
-        await mm.delete_transaction_category(category_id)
-        console.print("[green]✓ Category deleted.[/green]")
-    except Exception as e:
-        handle_error(e)
+
+    mm = get_client()
+    await mm.delete_transaction_category(category_id)
+    console.print("[green]✓ Category deleted.[/green]")

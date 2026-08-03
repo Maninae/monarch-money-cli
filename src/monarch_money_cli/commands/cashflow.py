@@ -10,7 +10,6 @@ from monarch_money_cli.client import (
     console,
     default_date_range,
     get_client,
-    handle_error,
     output_json,
 )
 
@@ -27,36 +26,33 @@ async def cashflow_summary(
     """
     Get cashflow summary (income, expenses, savings, savings rate).
     """
-    try:
-        mm = get_client()
-        start_date, end_date = default_date_range(start_date, end_date)
-        
-        data = await mm.get_cashflow_summary(start_date=start_date, end_date=end_date)
-        
-        if format == "table":
-            # API returns nested structure: {"summary": [{"summary": {...}}]}
-            outer = data.get("summary", [{}])[0] if data.get("summary") else {}
-            summary = outer.get("summary", {}) if isinstance(outer, dict) else {}
-            
-            income = summary.get("sumIncome", 0)
-            expenses = abs(summary.get("sumExpense", 0))
-            savings = income - expenses
-            savings_rate = (savings / income * 100) if income else 0
-            
-            table = Table(title=f"Cashflow Summary ({start_date} to {end_date})")
-            table.add_column("Metric")
-            table.add_column("Amount", justify="right")
-            
-            table.add_row("Income", f"[green]${income:,.2f}[/green]")
-            table.add_row("Expenses", f"[red]${expenses:,.2f}[/red]")
-            table.add_row("Net Savings", f"${savings:,.2f}")
-            table.add_row("Savings Rate", f"{savings_rate:.1f}%")
-            
-            console.print(table)
-        else:
-            output_json(data)
-    except Exception as e:
-        handle_error(e)
+    mm = get_client()
+    start_date, end_date = default_date_range(start_date, end_date)
+
+    data = await mm.get_cashflow_summary(start_date=start_date, end_date=end_date)
+
+    if format == "table":
+        # API returns nested structure: {"summary": [{"summary": {...}}]}
+        outer = data.get("summary", [{}])[0] if data.get("summary") else {}
+        summary = outer.get("summary", {}) if isinstance(outer, dict) else {}
+
+        income = summary.get("sumIncome", 0)
+        expenses = abs(summary.get("sumExpense", 0))
+        savings = income - expenses
+        savings_rate = (savings / income * 100) if income else 0
+
+        table = Table(title=f"Cashflow Summary ({start_date} to {end_date})")
+        table.add_column("Metric")
+        table.add_column("Amount", justify="right")
+
+        table.add_row("Income", f"[green]${income:,.2f}[/green]")
+        table.add_row("Expenses", f"[red]${expenses:,.2f}[/red]")
+        table.add_row("Net Savings", f"${savings:,.2f}")
+        table.add_row("Savings Rate", f"{savings_rate:.1f}%")
+
+        console.print(table)
+    else:
+        output_json(data)
 
 
 @app.command("details")
@@ -68,11 +64,8 @@ async def cashflow_details(
     """
     Get detailed cashflow by category, category group, and merchant.
     """
-    try:
-        mm = get_client()
-        start_date, end_date = default_date_range(start_date, end_date)
-        
-        data = await mm.get_cashflow(start_date=start_date, end_date=end_date)
-        output_json(data)
-    except Exception as e:
-        handle_error(e)
+    mm = get_client()
+    start_date, end_date = default_date_range(start_date, end_date)
+
+    data = await mm.get_cashflow(start_date=start_date, end_date=end_date)
+    output_json(data)

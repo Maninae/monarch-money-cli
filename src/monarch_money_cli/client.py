@@ -1,9 +1,10 @@
 """
-Monarch Money client singleton and session management.
+Monarch Money client construction, session management, and shared command helpers.
 """
 
 import asyncio
 import json
+from datetime import datetime
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable
@@ -75,30 +76,8 @@ MonarchMoney._multi_factor_authenticate = multi_factor_authenticate_with_trusted
 
 console = Console()
 
-# Default session/config paths
 SESSION_DIR = Path.home() / ".monarch"
 SESSION_FILE = SESSION_DIR / "session.json"
-CONFIG_FILE = SESSION_DIR / "config.json"
-
-
-def _load_config() -> dict:
-    """Load config from ~/.monarch/config.json."""
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE) as f:
-                return json.load(f)
-        except (json.JSONDecodeError, KeyError):
-            pass
-    return {}
-
-
-def save_config(config: dict) -> None:
-    """Save config to ~/.monarch/config.json."""
-    SESSION_DIR.mkdir(parents=True, exist_ok=True)
-    SESSION_DIR.chmod(0o700)
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
-    CONFIG_FILE.chmod(0o600)
 
 
 def get_client(require_auth: bool = True) -> MonarchMoney:
@@ -134,7 +113,7 @@ async def verify_session(mm: MonarchMoney) -> None:
 
 
 def save_session(mm: MonarchMoney) -> None:
-    """Save the current session."""
+    """Save the current session with credential-store permissions."""
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
     SESSION_DIR.chmod(0o700)
     mm.save_session(str(SESSION_FILE))
@@ -154,23 +133,8 @@ def session_exists() -> bool:
     return SESSION_FILE.exists()
 
 
-def async_command(f: Callable) -> Callable:
-    """Decorator to run async functions in typer commands."""
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        return asyncio.run(f(*args, **kwargs))
-    return wrapper
-
-
-def output_json(data: Any) -> None:
-    """Output data as JSON."""
-    console.print_json(json.dumps(data, default=str, indent=2))
-
-
-def _friendly_message(e: Exception) -> str:
+def friendly_error_message(e: Exception) -> str:
     """Convert upstream exceptions into user-friendly messages."""
-    from monarchmoney.monarchmoney import LoginFailedException, RequestFailedException
-
     msg = str(e)
 
     if isinstance(e, LoginFailedException):
@@ -182,10 +146,10 @@ def _friendly_message(e: Exception) -> str:
             return "Login failed -- incorrect password."
         if "525" in msg:
             return "Login failed -- could not connect to Monarch Money (SSL error). Try again later."
-        return f"Login failed -- {_sanitize(msg)}"
+        return f"Login failed -- {sanitize_error_message(msg)}"
 
     if isinstance(e, RequestFailedException):
-        return f"API request failed -- {_sanitize(msg)}"
+        return f"API request failed -- {sanitize_error_message(msg)}"
 
     if "TransportQueryError" in type(e).__name__:
         return "The Monarch Money API returned an error. The query may be temporarily unsupported."
@@ -196,10 +160,10 @@ def _friendly_message(e: Exception) -> str:
     if isinstance(e, TimeoutError):
         return "Request to Monarch Money timed out. Try again."
 
-    return _sanitize(msg)
+    return sanitize_error_message(msg)
 
 
-def _sanitize(msg: str) -> str:
+def sanitize_error_message(msg: str) -> str:
     """Strip tokens, headers, and URLs with auth params from error messages."""
     sensitive = ("token", "bearer", "authorization", "set-cookie", "cf-ray",
                  "clientresponse", "password", "device-uuid", "totp", "otp", "secret")
@@ -211,36 +175,36 @@ def _sanitize(msg: str) -> str:
 
 
 def handle_error(e: Exception) -> None:
-    """Handle and display errors consistently.
-
-    Re-raises KeyboardInterrupt and SystemExit to allow clean exits.
-    """
-    if isinstance(e, (KeyboardInterrupt, SystemExit)):
-        raise e
-    console.print(f"[red]Error: {_friendly_message(e)}[/red]")
+    """Print a friendly error message and exit 1."""
+    console.print(f"[red]Error: {friendly_error_message(e)}[/red]")
     raise SystemExit(1)
 
 
+def async_command(f: Callable) -> Callable:
+    """Decorator for typer commands: run the async body, route failures to handle_error.
+
+    Keeps command bodies free of try/except boilerplate -- any exception prints as
+    a friendly one-liner and exits 1. SystemExit and KeyboardInterrupt are not
+    Exception subclasses, so clean exits and Ctrl-C propagate untouched.
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return asyncio.run(f(*args, **kwargs))
+        except Exception as e:
+            handle_error(e)
+    return wrapper
+
+
+def output_json(data: Any) -> None:
+    """Output data as JSON."""
+    console.print_json(json.dumps(data, default=str, indent=2))
+
+
 def default_date_range(start: str | None, end: str | None) -> tuple[str, str]:
-    """Return (start_date, end_date), defaulting to current month."""
-    from datetime import datetime
+    """Return (start_date, end_date), defaulting to month-to-date."""
     today = datetime.now()
     return (
         start or today.replace(day=1).strftime("%Y-%m-%d"),
         end or today.strftime("%Y-%m-%d"),
     )
-
-
-def print_table(
-    title: str,
-    columns: list[tuple[str, str]],
-    rows: list[list[str]],
-) -> None:
-    """Print a simple table."""
-    from rich.table import Table
-    table = Table(title=title)
-    for name, justify in columns:
-        table.add_column(name, justify=justify or "left")
-    for row in rows:
-        table.add_row(*row)
-    console.print(table)

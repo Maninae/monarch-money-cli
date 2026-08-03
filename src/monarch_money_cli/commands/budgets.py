@@ -11,7 +11,6 @@ from monarch_money_cli.client import (
     async_command,
     console,
     get_client,
-    handle_error,
     output_json,
 )
 
@@ -41,56 +40,53 @@ async def list_budgets(
     """
     List all budgets with actual amounts.
     """
-    try:
-        mm = get_client()
-        start_date, end_date = _budget_date_range(start_date, end_date)
+    mm = get_client()
+    start_date, end_date = _budget_date_range(start_date, end_date)
 
-        data = await mm.get_budgets(start_date=start_date, end_date=end_date)
+    data = await mm.get_budgets(start_date=start_date, end_date=end_date)
 
-        if format == "table":
-            categories = data.get("budgetData", {}).get("monthlyAmountsByCategory", [])
-            table = Table(title=f"Budgets ({start_date} to {end_date})")
-            table.add_column("Category")
-            table.add_column("Budgeted", justify="right")
-            table.add_column("Actual", justify="right")
-            table.add_column("Remaining", justify="right")
-            table.add_column("Progress")
+    if format == "table":
+        categories = data.get("budgetData", {}).get("monthlyAmountsByCategory", [])
+        table = Table(title=f"Budgets ({start_date} to {end_date})")
+        table.add_column("Category")
+        table.add_column("Budgeted", justify="right")
+        table.add_column("Actual", justify="right")
+        table.add_column("Remaining", justify="right")
+        table.add_column("Progress")
 
-            for entry in categories:
-                cat_name = (entry.get("category") or {}).get("name", "Unknown")
-                amounts = entry.get("monthlyAmounts", [{}])
-                budgeted = sum(a.get("plannedCashFlowAmount") or 0 for a in amounts)
-                actual = sum(abs(a.get("actualAmount") or 0) for a in amounts)
-                remaining = budgeted - actual
+        for entry in categories:
+            cat_name = (entry.get("category") or {}).get("name", "Unknown")
+            amounts = entry.get("monthlyAmounts", [{}])
+            budgeted = sum(a.get("plannedCashFlowAmount") or 0 for a in amounts)
+            actual = sum(abs(a.get("actualAmount") or 0) for a in amounts)
+            remaining = budgeted - actual
 
-                if budgeted <= 0:
-                    continue
+            if budgeted <= 0:
+                continue
 
-                pct = (actual / budgeted) * 100
-                if pct > 100:
-                    progress = f"[red]{pct:.0f}%[/red]"
-                elif pct > 80:
-                    progress = f"[yellow]{pct:.0f}%[/yellow]"
-                else:
-                    progress = f"[green]{pct:.0f}%[/green]"
+            pct = (actual / budgeted) * 100
+            if pct > 100:
+                progress = f"[red]{pct:.0f}%[/red]"
+            elif pct > 80:
+                progress = f"[yellow]{pct:.0f}%[/yellow]"
+            else:
+                progress = f"[green]{pct:.0f}%[/green]"
 
-                remaining_str = (
-                    f"${remaining:,.2f}" if remaining >= 0
-                    else f"[red]-${abs(remaining):,.2f}[/red]"
-                )
+            remaining_str = (
+                f"${remaining:,.2f}" if remaining >= 0
+                else f"[red]-${abs(remaining):,.2f}[/red]"
+            )
 
-                table.add_row(
-                    cat_name,
-                    f"${budgeted:,.2f}",
-                    f"${actual:,.2f}",
-                    remaining_str,
-                    progress,
-                )
-            console.print(table)
-        else:
-            output_json(data)
-    except Exception as e:
-        handle_error(e)
+            table.add_row(
+                cat_name,
+                f"${budgeted:,.2f}",
+                f"${actual:,.2f}",
+                remaining_str,
+                progress,
+            )
+        console.print(table)
+    else:
+        output_json(data)
 
 
 @app.command("set")
@@ -106,23 +102,20 @@ async def set_budget(
 
     Use amount=0 to clear/unset the budget.
     """
-    try:
-        mm = get_client()
+    mm = get_client()
 
-        if not date:
-            date = datetime.now().replace(day=1).strftime("%Y-%m-%d")
+    if not date:
+        date = datetime.now().replace(day=1).strftime("%Y-%m-%d")
 
-        data = await mm.set_budget_amount(
-            category_id=category_id,
-            amount=amount,
-            start_date=date,
-            apply_to_future=apply_to_future,
-        )
+    data = await mm.set_budget_amount(
+        category_id=category_id,
+        amount=amount,
+        start_date=date,
+        apply_to_future=apply_to_future,
+    )
 
-        if amount == 0:
-            console.print("[green]Budget cleared.[/green]")
-        else:
-            console.print(f"[green]Budget set to ${amount:,.2f}.[/green]")
-        output_json(data)
-    except Exception as e:
-        handle_error(e)
+    if amount == 0:
+        console.print("[green]Budget cleared.[/green]")
+    else:
+        console.print(f"[green]Budget set to ${amount:,.2f}.[/green]")
+    output_json(data)
