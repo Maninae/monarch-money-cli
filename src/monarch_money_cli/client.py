@@ -7,10 +7,11 @@ import json
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, NoReturn
 
 import oathtool
 from aiohttp import ClientSession
+from click.exceptions import Abort
 from monarchmoney import MonarchMoney, RequireMFAException
 from monarchmoney.monarchmoney import (
     LoginFailedException,
@@ -81,7 +82,11 @@ SESSION_FILE = SESSION_DIR / "session.json"
 
 
 def get_client(require_auth: bool = True) -> MonarchMoney:
-    """Get a MonarchMoney client, optionally loading saved session."""
+    """Get a MonarchMoney client, optionally loading saved session.
+
+    Safe to call from sync or async context; raises SystemExit(1) when auth is
+    required but no loadable session exists.
+    """
     mm = MonarchMoney()
 
     if require_auth and SESSION_FILE.exists():
@@ -174,7 +179,7 @@ def sanitize_error_message(msg: str) -> str:
     return msg
 
 
-def handle_error(e: Exception) -> None:
+def handle_error(e: Exception) -> NoReturn:
     """Print a friendly error message and exit 1."""
     console.print(f"[red]Error: {friendly_error_message(e)}[/red]")
     raise SystemExit(1)
@@ -185,12 +190,15 @@ def async_command(f: Callable) -> Callable:
 
     Keeps command bodies free of try/except boilerplate -- any exception prints as
     a friendly one-liner and exits 1. SystemExit and KeyboardInterrupt are not
-    Exception subclasses, so clean exits and Ctrl-C propagate untouched.
+    Exception subclasses, so clean exits and Ctrl-C propagate untouched; click's
+    Abort (Ctrl-C/EOF at a confirm prompt) is re-raised so typer prints 'Aborted!'.
     """
     @wraps(f)
     def wrapper(*args, **kwargs):
         try:
             return asyncio.run(f(*args, **kwargs))
+        except Abort:
+            raise
         except Exception as e:
             handle_error(e)
     return wrapper

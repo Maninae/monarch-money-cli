@@ -57,7 +57,7 @@ async def list_recurring(
 
             merchant_name = merchant.get("name", "Unknown")[:30]
             category_name = category.get("name", "-")
-            amount = abs(stream.get("amount", 0))
+            amount = abs(stream.get("amount") or 0)
             frequency = stream.get("frequency", "-")
             next_date = item.get("date", "-")
             account_name = account.get("displayName", "-")[:20]

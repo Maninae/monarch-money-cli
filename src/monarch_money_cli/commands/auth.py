@@ -75,10 +75,12 @@ async def status(
         console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
         raise SystemExit(1)
 
-    console.print("[green]Authenticated[/green]")
-    console.print(f"  Session file: {SESSION_FILE}")
-
+    # Verify before claiming success, so a dead token never prints 'Authenticated'.
     if verify:
         mm = get_client()
         await verify_session(mm)
+
+    console.print("[green]Authenticated[/green]")
+    console.print(f"  Session file: {SESSION_FILE}")
+    if verify:
         console.print("[green]  Session verified against the API.[/green]")
