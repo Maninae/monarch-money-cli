@@ -9,6 +9,16 @@ from monarch_money_cli.client import async_command, console, get_client, output_
 
 app = typer.Typer(no_args_is_help=True)
 
+# Approximate months-per-cycle conversion (4.33 weeks per month on average).
+MONTHLY_MULTIPLIER_BY_FREQUENCY = {
+    "weekly": 4.33,
+    "biweekly": 2.17,
+    "monthly": 1.0,
+    "quarterly": 1 / 3,
+    "yearly": 1 / 12,
+    "annual": 1 / 12,
+}
+
 
 @app.command("list")
 @async_command
@@ -52,17 +62,7 @@ async def list_recurring(
             next_date = item.get("date", "-")
             account_name = account.get("displayName", "-")[:20]
 
-            # Estimate monthly amount
-            if frequency == "weekly":
-                monthly_total += amount * 4.33
-            elif frequency == "biweekly":
-                monthly_total += amount * 2.17
-            elif frequency == "monthly":
-                monthly_total += amount
-            elif frequency == "quarterly":
-                monthly_total += amount / 3
-            elif frequency in ("yearly", "annual"):
-                monthly_total += amount / 12
+            monthly_total += amount * MONTHLY_MULTIPLIER_BY_FREQUENCY.get(frequency, 0)
 
             table.add_row(
                 merchant_name,

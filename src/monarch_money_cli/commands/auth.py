@@ -3,9 +3,8 @@ Authentication commands.
 """
 
 import typer
-from rich.prompt import Prompt
-
 from monarchmoney import MonarchMoney, RequireMFAException
+from rich.prompt import Prompt
 
 from monarch_money_cli.client import (
     SESSION_FILE,

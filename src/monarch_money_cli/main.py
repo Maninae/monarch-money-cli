@@ -5,7 +5,17 @@ Monarch Money CLI - Comprehensive CLI for Monarch Money
 import typer
 
 from monarch_money_cli.client import handle_error
-from monarch_money_cli.commands import accounts, auth, budgets, cashflow, categories, institutions, recurring, tags, transactions
+from monarch_money_cli.commands import (
+    accounts,
+    auth,
+    budgets,
+    cashflow,
+    categories,
+    institutions,
+    recurring,
+    tags,
+    transactions,
+)
 
 app = typer.Typer(
     name="monarch",

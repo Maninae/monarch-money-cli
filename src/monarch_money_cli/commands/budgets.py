@@ -17,7 +17,7 @@ from monarch_money_cli.client import (
 app = typer.Typer(no_args_is_help=True)
 
 
-def _budget_date_range(start: str | None, end: str | None) -> tuple[str, str]:
+def budget_month_range(start: str | None, end: str | None) -> tuple[str, str]:
     """Budget-specific date range: defaults to full current month."""
     today = datetime.now()
     if not start:
@@ -41,7 +41,7 @@ async def list_budgets(
     List all budgets with actual amounts.
     """
     mm = get_client()
-    start_date, end_date = _budget_date_range(start_date, end_date)
+    start_date, end_date = budget_month_range(start_date, end_date)
 
     data = await mm.get_budgets(start_date=start_date, end_date=end_date)
 

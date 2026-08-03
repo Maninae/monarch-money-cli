@@ -17,6 +17,9 @@ from monarch_money_cli.client import (
 
 app = typer.Typer(no_args_is_help=True)
 
+# The API requires both ends of a date range; this start means "all history".
+EARLIEST_TRANSACTION_START_DATE = "2000-01-01"
+
 
 @app.command("list")
 @async_command
@@ -35,14 +38,12 @@ async def list_transactions(
     """
     mm = get_client()
 
-    # Parse optional filters
     kwargs = {"limit": limit, "offset": offset}
 
-    # API requires both start and end if either is given
     if start_date and not end_date:
         end_date = datetime.now().strftime("%Y-%m-%d")
     if end_date and not start_date:
-        start_date = "2000-01-01"
+        start_date = EARLIEST_TRANSACTION_START_DATE
     if start_date:
         kwargs["start_date"] = start_date
     if end_date:
