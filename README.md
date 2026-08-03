@@ -67,8 +67,10 @@ monarch transactions list --limit 100 | jq '.allTransactions.results[].amount'
 
 | File | Contents | Permissions |
 |------|----------|-------------|
-| `~/.monarch/session.json` | Auth token (pickle format) | `600` |
+| `~/.monarch/session.json` | Auth token (plain JSON) | `600` |
 | `~/.monarch/` | Session directory | `700` |
+
+Legacy sessions written by older versions were pickles despite the `.json` name; they are converted to real JSON automatically on first load.
 
 ## Security
 

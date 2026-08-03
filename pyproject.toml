@@ -29,6 +29,10 @@ dependencies = [
     "monarchmoney @ git+https://github.com/Maninae/monarchmoney@c7d568d888b90b7fa7e6f1e5e617c6a173c7f794",
     "typer[all]>=0.9.0,<1.0",
     "rich>=13.0.0,<14.0",
+    # Imported directly (not just via monarchmoney), so declared explicitly.
+    "aiohttp>=3.9,<4.0",
+    "gql>=4.0,<5.0",
+    "oathtool>=2.3,<3.0",
 ]
 
 [project.optional-dependencies]

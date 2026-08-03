@@ -4,6 +4,7 @@ Monarch Money client construction, session management, and shared command helper
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
@@ -12,6 +13,7 @@ from typing import Any, Callable, NoReturn
 import oathtool
 from aiohttp import ClientSession
 from click.exceptions import Abort
+from gql.transport.exceptions import TransportQueryError, TransportServerError
 from monarchmoney import MonarchMoney, RequireMFAException
 from monarchmoney.monarchmoney import (
     LoginFailedException,
@@ -81,36 +83,57 @@ SESSION_DIR = Path.home() / ".monarch"
 SESSION_FILE = SESSION_DIR / "session.json"
 
 
+def load_session_token() -> str:
+    """Read the auth token from SESSION_FILE (JSON, with legacy-pickle fallback).
+
+    Sessions written by the upstream library are pickles despite the .json name;
+    on first load they are converted to JSON in place so the filename is honest
+    and the pickle path dies out.
+    """
+    try:
+        return json.loads(SESSION_FILE.read_text())["token"]
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        legacy = MonarchMoney()
+        legacy.load_session(str(SESSION_FILE))
+        save_session(legacy)
+        return legacy.token
+
+
 def get_client(require_auth: bool = True) -> MonarchMoney:
     """Get a MonarchMoney client, optionally loading saved session.
 
     Safe to call from sync or async context; raises SystemExit(1) when auth is
     required but no loadable session exists.
     """
-    mm = MonarchMoney()
+    if not require_auth:
+        return MonarchMoney()
 
-    if require_auth and SESSION_FILE.exists():
-        try:
-            mm.load_session(str(SESSION_FILE))
-        except Exception:
-            console.print("[red]Failed to load session.[/red]")
-            console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
-            raise SystemExit(1)
-    elif require_auth:
+    if not SESSION_FILE.exists():
         console.print("[red]Not authenticated.[/red]")
         console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
         raise SystemExit(1)
 
-    return mm
+    try:
+        token = load_session_token()
+    except Exception:
+        console.print("[red]Failed to load session.[/red]")
+        console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
+        raise SystemExit(1)
+
+    # The constructor sets the Authorization header from the token.
+    return MonarchMoney(token=token)
 
 
 async def verify_session(mm: MonarchMoney) -> None:
-    """Health check: verify session is still valid. Call from async context."""
+    """Health check: verify the token against the API. Call from async context.
+
+    A dead token surfaces as HTTP 401/403 (TransportServerError, verified
+    empirically against the live endpoint); other failures propagate.
+    """
     try:
         await mm.get_subscription_details()
-    except Exception as e:
-        err = str(e)
-        if "401" in err or "Unauthorized" in err or "not authenticated" in err.lower():
+    except TransportServerError as e:
+        if e.code in (401, 403):
             console.print("[red]Session expired or invalid.[/red]")
             console.print("[yellow]Run 'monarch auth login' to authenticate.[/yellow]")
             raise SystemExit(1)
@@ -118,11 +141,17 @@ async def verify_session(mm: MonarchMoney) -> None:
 
 
 def save_session(mm: MonarchMoney) -> None:
-    """Save the current session with credential-store permissions."""
+    """Save the auth token as JSON with credential-store permissions.
+
+    The file is opened 0o600 from the start so the token never exists on disk
+    with looser permissions, even briefly.
+    """
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
     SESSION_DIR.chmod(0o700)
-    mm.save_session(str(SESSION_FILE))
-    SESSION_FILE.chmod(0o600)
+    fd = os.open(SESSION_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        json.dump({"token": mm.token}, fh, indent=2)
+    SESSION_FILE.chmod(0o600)  # os.open's mode only applies at creation, not overwrite
 
 
 def clear_session() -> bool:
@@ -156,7 +185,12 @@ def friendly_error_message(e: Exception) -> str:
     if isinstance(e, RequestFailedException):
         return f"API request failed -- {sanitize_error_message(msg)}"
 
-    if "TransportQueryError" in type(e).__name__:
+    if isinstance(e, TransportServerError):
+        if e.code in (401, 403):
+            return "Session expired or invalid. Run 'monarch auth login' to authenticate."
+        return f"Monarch Money API returned HTTP {e.code}. Try again later."
+
+    if isinstance(e, TransportQueryError):
         return "The Monarch Money API returned an error. The query may be temporarily unsupported."
 
     if isinstance(e, (ConnectionError, OSError)):
