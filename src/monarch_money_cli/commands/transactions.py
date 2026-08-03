@@ -10,7 +10,6 @@ from rich.table import Table
 from monarch_money_cli.client import (
     async_command,
     console,
-    default_date_range,
     get_client,
     output_json,
 )
@@ -101,17 +100,12 @@ async def get_transaction(
 
 @app.command("summary")
 @async_command
-async def get_summary(
-    start_date: str = typer.Option(None, "--start", "-s", help="Start date (YYYY-MM-DD)"),
-    end_date: str = typer.Option(None, "--end", "-e", help="End date (YYYY-MM-DD)"),
-):
+async def get_summary():
     """
-    Get transaction summary for a date range.
+    Get aggregate transaction summary across all history.
     """
     mm = get_client()
-    start_date, end_date = default_date_range(start_date, end_date)
-
-    data = await mm.get_transactions_summary(start_date=start_date, end_date=end_date)
+    data = await mm.get_transactions_summary()
     output_json(data)
 
 
