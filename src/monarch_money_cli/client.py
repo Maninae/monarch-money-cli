@@ -8,18 +8,19 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable
 
-from monarchmoney import MonarchMoney
+import oathtool
+from aiohttp import ClientSession
+from monarchmoney import MonarchMoney, RequireMFAException
+from monarchmoney.monarchmoney import (
+    LoginFailedException,
+    MonarchMoneyEndpoints,
+    RequestFailedException,
+)
 from rich.console import Console
 
-# trusted_device must be True for non-expiring tokens
-# See: https://github.com/hammem/monarchmoney/issues/139
-import monarchmoney.monarchmoney as _mm_module
 
-
-async def _login_user_patched(self, email, password, mfa_secret_key=None):
+async def login_user_with_trusted_device(self, email, password, mfa_secret_key=None):
     """Login with trusted_device=True for non-expiring tokens."""
-    from aiohttp import ClientSession
-
     data = {
         "password": password,
         "supports_mfa": True,
@@ -27,18 +28,16 @@ async def _login_user_patched(self, email, password, mfa_secret_key=None):
         "username": email,
     }
     if mfa_secret_key:
-        import oathtool
         data["totp"] = oathtool.generate_otp(mfa_secret_key)
 
     async with ClientSession(headers=self._headers) as session:
         async with session.post(
-            _mm_module.MonarchMoneyEndpoints.getLoginEndpoint(), json=data
+            MonarchMoneyEndpoints.getLoginEndpoint(), json=data
         ) as resp:
             if resp.status == 403:
-                from monarchmoney import RequireMFAException
                 raise RequireMFAException("Multi-Factor Auth Required")
             elif resp.status != 200:
-                raise _mm_module.LoginFailedException(
+                raise LoginFailedException(
                     f"HTTP Code {resp.status}: {resp.reason}"
                 )
             response = await resp.json()
@@ -46,10 +45,8 @@ async def _login_user_patched(self, email, password, mfa_secret_key=None):
             self._headers["Authorization"] = f"Token {self._token}"
 
 
-async def _mfa_patched(self, email, password, code):
+async def multi_factor_authenticate_with_trusted_device(self, email, password, code):
     """MFA with trusted_device=True for non-expiring tokens."""
-    from aiohttp import ClientSession
-
     data = {
         "password": password,
         "supports_mfa": True,
@@ -60,10 +57,10 @@ async def _mfa_patched(self, email, password, code):
 
     async with ClientSession(headers=self._headers) as session:
         async with session.post(
-            _mm_module.MonarchMoneyEndpoints.getLoginEndpoint(), json=data
+            MonarchMoneyEndpoints.getLoginEndpoint(), json=data
         ) as resp:
             if resp.status != 200:
-                raise _mm_module.LoginFailedException(
+                raise LoginFailedException(
                     f"HTTP Code {resp.status}: {resp.reason}"
                 )
             response = await resp.json()
@@ -71,9 +68,10 @@ async def _mfa_patched(self, email, password, code):
             self._headers["Authorization"] = f"Token {self._token}"
 
 
-_mm_module.MonarchMoney._login_user = _login_user_patched
-_mm_module.MonarchMoney._multi_factor_authenticate = _mfa_patched
-del _mm_module
+# Upstream hardcodes trusted_device=False, which makes tokens expire quickly.
+# See: https://github.com/hammem/monarchmoney/issues/139
+MonarchMoney._login_user = login_user_with_trusted_device
+MonarchMoney._multi_factor_authenticate = multi_factor_authenticate_with_trusted_device
 
 console = Console()
 
